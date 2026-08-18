@@ -33,26 +33,7 @@ TeleDrive provides a Google Drive-like web interface while using **Telegram** as
 
 ## 🏗 Architecture
 
-```
-                    TeleDrive
-                 Web Browser
-                      │
-                      ▼
-             React + Vite + Tailwind
-                      │
-                      │ REST API
-                      ▼
-                Flask Backend
-                 /          \
-                /            \
-               ▼              ▼
-           SQLite       Telegram Bot API
-         Metadata        Actual Files
-                              │
-                              ▼
-                     Private Telegram
-                     Storage Chat
-```
+![AAD](img/AAD.png)
 
 - **Telegram** = actual file storage
 - **SQLite** = metadata/index
