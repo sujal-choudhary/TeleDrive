@@ -159,8 +159,8 @@ TELEGRAM_CHAT_ID=-100123456789
 # Default: SQLite file in the backend directory
 DATABASE_URL=sqlite:///teledrive.db
 
-# Maximum upload size in bytes (default: 500 MB)
-MAX_UPLOAD_SIZE=524288000
+# Maximum upload size in bytes (default: 10 GB)
+MAX_UPLOAD_SIZE=10737418240
 
 # Frontend origin for CORS (comma-separated for multiple)
 FRONTEND_URL=http://localhost:5173
@@ -313,6 +313,18 @@ TeleDrive has **no authentication** by design — it's for personal use. Securit
 - Verify `TELEGRAM_BOT_TOKEN` is correct
 - Verify `TELEGRAM_CHAT_ID` is correct and the bot is a member/administrator
 - Check the bot has permission to send documents in the chat
+
+### Upload fails with "Request Entity Too Large" (HTTP 413)
+
+- The default `MAX_UPLOAD_SIZE` is 10 GB (10737418240 bytes)
+- Override it in `Backend/.env` if you need a different limit:
+  ```env
+  MAX_UPLOAD_SIZE=21474836480  # 20 GB
+  ```
+- If using Docker, also update `client_max_body_size` in `frontend/nginx.conf`
+- Files over ~50 MB cannot be downloaded back through the Telegram Bot API
+  (Telegram's `getFile` download limit). They are still stored in your
+  Telegram chat but must be retrieved manually from there.
 
 ### Files sent to Telegram don't appear in dashboard
 

@@ -14,8 +14,9 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Upload limits
-    MAX_UPLOAD_SIZE = int(os.environ.get("MAX_UPLOAD_SIZE", 524288000))  # default 500 MB
-    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_SIZE", 524288000))  # same as upload limit
+    # Note: VHDX/VMDK files can be very large. Default is 10 GB (10737418240 bytes).
+    MAX_UPLOAD_SIZE = int(os.environ.get("MAX_UPLOAD_SIZE", 10737418240))  # default 10 GB
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_SIZE", 10737418240))  # same as upload limit
 
     # Telegram
     TG_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")

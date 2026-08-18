@@ -12,6 +12,7 @@ DELETE /api/files/<id>
 import logging
 
 from flask import Blueprint, request, jsonify, Response, stream_with_context, current_app
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from extensions import db, limiter
 from models import File
@@ -129,9 +130,14 @@ def upload_files():
             except ValueError:
                 return error_response("Invalid folder ID", "INVALID_FOLDER_ID", 400)
 
+        # Parse relative paths for folder uploads (one per file)
+        paths = request.form.getlist("paths")
+        if paths and len(paths) != len(files):
+            paths = None
+
         service = get_file_service()
 
-        uploaded = service.upload_files(files, folder_id=folder_id_int)
+        uploaded = service.upload_files(files, folder_id=folder_id_int, paths=paths)
 
         return success_response(
             data={"files": [f.to_dict() for f in uploaded]},
@@ -139,6 +145,8 @@ def upload_files():
             status_code=201,
         )
 
+    except RequestEntityTooLarge:
+        return error_response("Upload exceeds maximum allowed size", "FILE_TOO_LARGE", 413)
     except ValidationError as e:
         return error_response(e.message, e.code, 400)
     except TelegramUploadError as e:

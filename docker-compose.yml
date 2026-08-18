@@ -9,7 +9,7 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - DATABASE_URL=sqlite:////data/teledrive.db
-      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE:-524288000}
+      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE:-10737418240}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
     volumes:

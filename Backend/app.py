@@ -43,6 +43,11 @@ def create_app(config_class=Config):
     # ------------------------------------------------------------------
     db.init_app(app)
 
+    # Auto-create tables on startup (idempotent — does not drop existing data).
+    # This ensures the database is always ready even if init_db.py wasn't run.
+    with app.app_context():
+        db.create_all()
+
     # ------------------------------------------------------------------
     # Rate limiting
     # ------------------------------------------------------------------

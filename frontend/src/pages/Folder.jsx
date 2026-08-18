@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ChevronRightIcon, ArrowUpTrayIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline'
+import { ChevronRightIcon, ArrowUpTrayIcon, FolderPlusIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline'
 import FileGrid from '../components/FileGrid'
 import FileList from '../components/FileList'
 import FilePreview from '../components/FilePreview'
 import ConfirmDialog from '../components/ConfirmDialog'
 import UploadModal from '../components/UploadModal'
 import useFileManager from '../hooks/useFileManager'
-import { getFolder } from '../services/folders'
+import { getFolder, createFolder } from '../services/folders'
 import { isPreviewable } from '../utils/fileTypes'
 
 export default function Folder() {
@@ -21,6 +21,8 @@ export default function Folder() {
   const [sortBy, setSortBy] = useState('name')
   const [sortOrder, setSortOrder] = useState('asc')
   const [showUpload, setShowUpload] = useState(false)
+  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -52,6 +54,19 @@ export default function Folder() {
     } else {
       setSortBy(field)
       setSortOrder('asc')
+    }
+  }
+
+  const handleCreateFolder = async (e) => {
+    e.preventDefault()
+    if (!newFolderName.trim()) return
+    try {
+      await createFolder(newFolderName.trim(), Number(id))
+      setNewFolderName('')
+      setShowNewFolder(false)
+      refresh()
+    } catch (err) {
+      alert(err.message)
     }
   }
 
@@ -120,6 +135,14 @@ export default function Folder() {
           </div>
 
           <button
+            onClick={() => setShowNewFolder(true)}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <FolderPlusIcon className="h-5 w-5" />
+            New Folder
+          </button>
+
+          <button
             onClick={() => setShowUpload(true)}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
@@ -171,6 +194,37 @@ export default function Folder() {
           onFolderOpen={(folder) => navigate(`/folder/${folder.id}`)}
           onFileOpen={(file) => { if (isPreviewable(file)) manager.setPreviewFile(file); else manager.handlers.handleDownload(file) }}
         />
+      )}
+
+      {/* New folder inline form */}
+      {showNewFolder && (
+        <form
+          onSubmit={handleCreateFolder}
+          className="mb-4 flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 p-3"
+        >
+          <input
+            autoFocus
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onBlur={() => setTimeout(() => setShowNewFolder(false), 200)}
+            placeholder="Folder name"
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-400"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Create
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowNewFolder(false)}
+            className="rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+        </form>
       )}
 
       {/* Upload modal */}

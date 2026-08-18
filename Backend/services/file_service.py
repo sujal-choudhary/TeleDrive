@@ -33,7 +33,7 @@ from utils.validators import (
 logger = logging.getLogger(__name__)
 
 # Maximum upload size from config (set in app factory)
-MAX_UPLOAD_SIZE = 500 * 1024 * 1024  # default 500 MB
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024  # default 10 GB
 
 # File type filter categories
 FILE_TYPE_FILTERS = {
@@ -79,13 +79,14 @@ class FileService:
     # ------------------------------------------------------------------
     # Upload
     # ------------------------------------------------------------------
-    def upload_files(self, files, folder_id=None):
+    def upload_files(self, files, folder_id=None, paths=None):
         """
         Validate and upload one or more files.
 
         Args:
             files: Flask request.files.getlist("file") iterator
             folder_id: Optional target folder id
+            paths: Optional list of relative paths for each file (for folder uploads)
 
         Returns:
             List of created File records.
@@ -102,11 +103,16 @@ class FileService:
             if not folder:
                 raise ValidationError("Folder not found", "FOLDER_NOT_FOUND")
 
-        for file in files:
+        for i, file in enumerate(files):
             if not file or not file.filename:
                 continue
 
             original_name = file.filename
+
+            # Determine target folder (create nested folders if path provided)
+            target_folder_id = folder_id
+            if paths and i < len(paths) and paths[i]:
+                target_folder_id = self._ensure_folder_path(folder_id, paths[i])
 
             # Sanitize and validate filename (path traversal protection)
             safe_name = validate_filename(original_name)
@@ -149,7 +155,7 @@ class FileService:
                     file_size=telegram_info["file_size"],
                     mime_type=telegram_info.get("mime_type") or mime_type,
                     extension=extension,
-                    folder_id=folder_id,
+                    folder_id=target_folder_id,
                 )
 
                 db.session.add(file_record)
@@ -516,6 +522,49 @@ class FileService:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    def _ensure_folder_path(self, base_folder_id, relative_path):
+        """
+        Create nested folders for a relative path and return the final folder ID.
+
+        Args:
+            base_folder_id: The parent folder ID (or None for root)
+            relative_path: Relative folder path like "subfolder/nested"
+                          (the filename is already stripped by the client)
+
+        Returns:
+            The ID of the deepest folder in the path.
+        """
+        # Normalize path separators
+        rel_path = relative_path.replace("\\", "/")
+
+        # Split into folder components
+        parts = [p for p in rel_path.split("/") if p and p not in {".", ".."}]
+
+        if not parts:
+            return base_folder_id
+
+        current_parent_id = base_folder_id
+
+        for part in parts:
+            # Validate folder name
+            clean_name = validate_folder_name(part)
+
+            # Check if folder already exists
+            existing = Folder.query.filter(
+                Folder.parent_id == current_parent_id,
+                db.func.lower(Folder.name) == clean_name.lower(),
+            ).first()
+
+            if existing:
+                current_parent_id = existing.id
+            else:
+                folder = Folder(name=clean_name, parent_id=current_parent_id)
+                db.session.add(folder)
+                db.session.flush()  # Get the new folder ID
+                current_parent_id = folder.id
+
+        return current_parent_id
+
     def _is_descendant(self, folder, ancestor):
         """Check if `folder` is a descendant of `ancestor` (circular prevention)."""
         current = folder

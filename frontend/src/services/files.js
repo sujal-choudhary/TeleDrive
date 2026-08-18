@@ -22,12 +22,16 @@ export async function getFile(id) {
  * @param {File[]} files - Array of File objects
  * @param {number|null} folderId - Target folder
  * @param {Function} onProgress - (progressEvent) => void
+ * @param {string[]} [paths] - Optional relative paths for each file (for folder uploads)
  */
-export async function uploadFiles(files, folderId = null, onProgress = null) {
+export async function uploadFiles(files, folderId = null, onProgress = null, paths = null) {
   const formData = new FormData()
   files.forEach((file) => formData.append('file', file))
   if (folderId != null) {
     formData.append('folder_id', String(folderId))
+  }
+  if (paths && paths.length === files.length) {
+    paths.forEach((path) => formData.append('paths', path))
   }
 
   const res = await api.post('/files/upload', formData, {
